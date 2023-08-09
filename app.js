@@ -1,46 +1,74 @@
 import axios from 'axios';
-import { DateTime, Duration } from 'luxon';
+import { DateTime } from 'luxon';
+import { abbreviateTeam, prependPlusSign } from './utils.js';
 import 'dotenv/config';
 
 const apiKey = process.env.ODDS_API_KEY;
+const nflStartDate = process.env.NFL_START_DATE;
+const bookmaker = process.env.BOOKMAKER;
+const currentDate = DateTime.utc();
 
-const getNFLWeek = (currentDate) => {
-  const startDate = DateTime.fromISO('2023-09-07');
-  const endDate = DateTime.fromISO(currentDate);
-  const duration = Duration.fromMillis(endDate.diff(startDate).valueOf());
-  const daysPassed = duration.as('days');
-  return Math.ceil(daysPassed / 7);
+/**
+ * Get the NFL week based on a given date
+ * @param {DateTime} date The date for which to get the NFL week
+ * @returns {number} The NFL week number
+ */
+const getNFLWeek = (date) => {
+  const startDate = nflStartDate;
+  const endDate = DateTime.fromISO(startDate).plus({ weeks: 18 }).toISODate();
+
+  if (date < startDate) {
+    return 1;
+  } else if (date > endDate) {
+    return 18;
+  }
+
+  let week = 1;
+  let currentWeekStart = startDate;
+  while (currentWeekStart <= date) {
+    if (
+      date < DateTime.fromISO(currentWeekStart).plus({ days: 4 }).toISODate()
+    ) {
+      return week;
+    }
+    week++;
+    currentWeekStart = DateTime.fromISO(currentWeekStart)
+      .plus({ days: 7 })
+      .toISODate();
+  }
+
+  return week;
 };
 
-// 
-
-const x = getNFLWeek(DateTime.now().toISODate());
-console.log(x);
-
-const filterGamesForTheWeek = (data) => {
-  const currentWeek = getNFLWeek(DateTime.now().toISODate());
-  const startOfWeek = DateTime.fromISO('2023-09-08').plus({
-    days: (currentWeek - 1) * 7,
-  });
-  const endOfWeek = startOfWeek.plus({ days: 6 });
+/**
+ * Filter the dataset for games within a given NFL week
+ * @param {Array} data The dataset to filter
+ * @param {number} week The NFL week for which to filter
+ * @returns {Array} The filtered dataset
+ */
+const filterData = (data, week) => {
+  const weekStart = DateTime.fromISO(nflStartDate)
+    .plus({ weeks: week - 1 })
+    .toISODate();
+  const weekEnd = DateTime.fromISO(weekStart).plus({ days: 6 }).toISODate();
 
   return data.filter((game) => {
-    const gameDate = DateTime.fromISO(game.commence_time);
-    return gameDate >= startOfWeek && gameDate <= endOfWeek;
+    const gameDate = game.commence_time;
+    return gameDate >= weekStart && gameDate <= weekEnd;
   });
 };
 
 // Add JSDoc
 const getOdds = async () => {
-  const url = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?regions=us&oddsFormat=american&bookmakers=draftkings&markets=h2h,spreads,totals&apiKey=${apiKey}`;
+  const url = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?regions=us&oddsFormat=american&bookmakers=${bookmaker}&markets=h2h,spreads,totals&apiKey=${apiKey}`;
 
   try {
     const res = await axios.get(url);
     console.log('Remaing requests: ', res.headers['x-requests-remaining']);
-    const dataArr = res.data;
-    return dataArr;
+    const { data } = res;
+    return data;
   } catch (err) {
-    console.error(err);
+    console.log(err);
   }
 };
 
@@ -51,32 +79,60 @@ const formatMsg = (data) => {
   data.forEach((game) => {
     const awayTeam = game.away_team;
     const homeTeam = game.home_team;
-    const commenceTime = game.commence_time;
+    const commenceTime = DateTime.fromISO(game.commence_time)
+      .setZone('America/New_York')
+      .toFormat('L/dd h:mma');
 
     let h2h = '';
     let spreads = '';
+    let totals = '';
 
-    const draftKings = game.bookmakers.find((b) => b.key === 'draftkings');
-    if (draftKings) {
-      const h2hMarket = draftKings.markets.find((m) => m.key === 'h2h');
+    const selectedBook = game.bookmakers.find((b) => b.key === bookmaker);
+    if (selectedBook) {
+      const h2hMarket = selectedBook.markets.find(
+        (market) => market.key === 'h2h',
+      );
       if (h2hMarket) {
-        h2h = `${h2hMarket.outcomes[0].name} ${h2hMarket.outcomes[0].price} | ${h2hMarket.outcomes[1].name} ${h2hMarket.outcomes[1].price}`;
+        h2h = `${abbreviateTeam(h2hMarket.outcomes[0].name)} ${prependPlusSign(
+          h2hMarket.outcomes[0].price,
+        )} | ${abbreviateTeam(h2hMarket.outcomes[1].name)} ${prependPlusSign(
+          h2hMarket.outcomes[1].price,
+        )}`;
       }
 
-      const spreadMarket = draftKings.markets.find((m) => m.key === 'spreads');
+      const spreadMarket = selectedBook.markets.find(
+        (market) => market.key === 'spreads',
+      );
       if (spreadMarket) {
-        spreads = `${spreadMarket.outcomes[0].name} ${spreadMarket.outcomes[0].point} (${spreadMarket.outcomes[0].price}) | ${spreadMarket.outcomes[1].name} ${spreadMarket.outcomes[1].point} (${spreadMarket.outcomes[1].price})`;
+        spreads = `${abbreviateTeam(
+          spreadMarket.outcomes[0].name,
+        )} ${prependPlusSign(spreadMarket.outcomes[0].point)} (${
+          spreadMarket.outcomes[0].price
+        }) | ${abbreviateTeam(spreadMarket.outcomes[1].name)} ${prependPlusSign(
+          spreadMarket.outcomes[1].point,
+        )} (${spreadMarket.outcomes[1].price})`;
       }
 
-      formattedMsg += `
-${awayTeam} @ ${homeTeam} - ${commenceTime}
-DraftKings - ${draftKings.last_update}
-Moneyline 
-${h2h}
-Spread
-${spreads}
-===============
-      `;
+      const totalsMarket = selectedBook.markets.find(
+        (market) => market.key === 'totals',
+      );
+      if (totalsMarket) {
+        totals = `${totalsMarket.outcomes[0].name} ${totalsMarket.outcomes[0].point} ${totalsMarket.outcomes[0].price} | ${totalsMarket.outcomes[1].name} ${totalsMarket.outcomes[1].point} ${totalsMarket.outcomes[1].price}`;
+      }
+
+      formattedMsg +=
+        abbreviateTeam(awayTeam) +
+        ' @ ' +
+        abbreviateTeam(homeTeam) +
+        ' - ' +
+        commenceTime +
+        '\n' +
+        spreads +
+        '\n' +
+        h2h +
+        '\n' +
+        totals +
+        '\n\n';
     }
   });
 
@@ -87,28 +143,27 @@ ${spreads}
 const sendDiscordMsg = async (msg) => {
   const url = process.env.DISCORD_BOT_URL;
 
-  const formattedMsg = {
+  const msgObj = {
     content: '```' + msg + '```',
   };
 
   try {
-    const res = await axios.post(url, formattedMsg);
+    const res = await axios.post(url, msgObj);
     if (res.status === 204) {
       console.log('Msg send successfully');
     }
   } catch (err) {
-    console.error(err);
+    console.log(err.response);
+    console.log(err.response.data);
   }
 };
 
 const main = async () => {
-  const rawData = await getOdds();
-  const filteredData = await filterGamesForTheWeek(rawData);
-  console.log(filteredData);
+  const currentWeek = await getNFLWeek(currentDate);
+  const oddsData = await getOdds();
+  const filteredData = await filterData(oddsData, currentWeek);
   const formattedMsg = await formatMsg(filteredData);
-  console.log('==========YUP==========');
-  console.log(formattedMsg);
-  // sendDiscordMsg(formattedMsg);
+  sendDiscordMsg(formattedMsg);
 };
 
-// main();
+main();
