@@ -14,7 +14,7 @@ This project uses an AWS Lambda function to fetch NFL odds from the `odds-api`, 
 
 5. `sendDiscordMsg(msg)`: Sends the formatted message to a Discord channel using a bot.
 
-##### Flow
+#### Flow
 
 The flow is as follows:
 
