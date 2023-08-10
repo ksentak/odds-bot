@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { DateTime } from 'luxon';
-import { abbreviateTeam, prependPlusSign } from './utils.js';
+import { abbreviateTeam, prependPlusSign } from './utils.mjs';
 import 'dotenv/config';
 
 const apiKey = process.env.ODDS_API_KEY;
