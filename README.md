@@ -56,7 +56,6 @@ Zip up the necessary files:
 
 ```
 zip -r odds-bot.zip node_modules index.mjs utils.mjs .env
-
 ```
 
 The odds-bot.zip file is now ready to be uploaded to AWS Lambda.
