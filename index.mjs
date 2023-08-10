@@ -186,7 +186,7 @@ export const handler = async () => {
     const formattedMsg = await formatMsg(filteredData);
     await sendDiscordMsg(formattedMsg);
   } catch (err) {
-    console.error('Error in handler: ', error.message);
+    console.error('Error in handler: ', err.message);
     throw err;
   }
 };
