@@ -6,6 +6,7 @@ import 'dotenv/config';
 const apiKey = process.env.ODDS_API_KEY;
 const nflStartDate = process.env.NFL_START_DATE;
 const bookmaker = process.env.BOOKMAKER;
+const timezone = process.env.TIMEZONE;
 const currentDate = DateTime.utc();
 
 /**
@@ -92,7 +93,7 @@ const formatMsg = (data) => {
     const awayTeam = game.away_team;
     const homeTeam = game.home_team;
     const commenceTime = DateTime.fromISO(game.commence_time)
-      .setZone('America/New_York')
+      .setZone(timezone)
       .toFormat('L/dd h:mma');
 
     let h2h = '';
@@ -177,12 +178,15 @@ const sendDiscordMsg = async (msg) => {
   }
 };
 
-const main = async () => {
-  const currentWeek = getNFLWeek(currentDate);
-  const oddsData = await getOdds();
-  const filteredData = filterData(oddsData, currentWeek);
-  const formattedMsg = await formatMsg(filteredData);
-  sendDiscordMsg(formattedMsg);
+export const handler = async () => {
+  try {
+    const currentWeek = getNFLWeek(currentDate);
+    const oddsData = await getOdds();
+    const filteredData = filterData(oddsData, currentWeek);
+    const formattedMsg = await formatMsg(filteredData);
+    await sendDiscordMsg(formattedMsg);
+  } catch (err) {
+    console.error('Error in handler: ', error.message);
+    throw err;
+  }
 };
-
-main();
