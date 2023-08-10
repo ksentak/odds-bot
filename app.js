@@ -58,7 +58,13 @@ const filterData = (data, week) => {
   });
 };
 
-// Add JSDoc
+/**
+ * Fetches odds for NFL games from the Odds API.
+ * @async
+ * @function
+ * @returns {Object[]|undefined} Returns an array of game odds or undefined if there's an error.
+ * @throws {Error} Throws an error if unable to fetch data from the API.
+ */
 const getOdds = async () => {
   const url = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?regions=us&oddsFormat=american&bookmakers=${bookmaker}&markets=h2h,spreads,totals&apiKey=${apiKey}`;
 
@@ -69,10 +75,16 @@ const getOdds = async () => {
     return data;
   } catch (err) {
     console.log(err);
+    throw err;
   }
 };
 
-// Function to format odds
+/**
+ * Formats the odds data into a human-readable message for each game.
+ * @function
+ * @param {Array} data - An array of game objects, each containing information about the away and home teams, the commence time, and various betting odds.
+ * @returns {string} A formatted message string representing the odds for each game in the input data.
+ */
 const formatMsg = (data) => {
   let formattedMsg = '';
 
@@ -139,7 +151,14 @@ const formatMsg = (data) => {
   return formattedMsg;
 };
 
-// Add JSDoc
+/**
+ * Sends a message to a Discord channel via a bot.
+ * @async
+ * @function
+ * @param {string} msg - The message to be sent to Discord.
+ * @returns {void}
+ * @throws {Error} Throws an error if unable to send the message to Discord.
+ */
 const sendDiscordMsg = async (msg) => {
   const url = process.env.DISCORD_BOT_URL;
 
@@ -153,15 +172,15 @@ const sendDiscordMsg = async (msg) => {
       console.log('Msg send successfully');
     }
   } catch (err) {
-    console.log(err.response);
     console.log(err.response.data);
+    throw err;
   }
 };
 
 const main = async () => {
-  const currentWeek = await getNFLWeek(currentDate);
+  const currentWeek = getNFLWeek(currentDate);
   const oddsData = await getOdds();
-  const filteredData = await filterData(oddsData, currentWeek);
+  const filteredData = filterData(oddsData, currentWeek);
   const formattedMsg = await formatMsg(filteredData);
   sendDiscordMsg(formattedMsg);
 };
