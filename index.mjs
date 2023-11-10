@@ -7,7 +7,7 @@ const apiKey = process.env.ODDS_API_KEY;
 const nflStartDate = process.env.NFL_START_DATE;
 const bookmaker = process.env.BOOKMAKER;
 const timezone = process.env.TIMEZONE;
-const currentDate = DateTime.utc();
+const currentDate = DateTime.utc().toISO();
 
 /**
  * Get the NFL week based on a given date
