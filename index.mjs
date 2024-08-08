@@ -194,12 +194,10 @@ export const handler = async () => {
     const currentWeek = getNFLWeek(currentDate);
     const oddsData = await getOdds();
     const filteredData = filterData(oddsData, currentWeek);
-    // const formattedMsg = await formatMsg(filteredData);
-    // await sendDiscordMsg(formattedMsg);
+    const formattedMsg = await formatMsg(filteredData);
+    await sendDiscordMsg(formattedMsg);
   } catch (err) {
     console.error('Error in handler: ', err.message);
     throw err;
   }
 };
-
-handler();
