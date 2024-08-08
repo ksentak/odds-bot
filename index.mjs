@@ -1,4 +1,5 @@
-import axios from 'axios';
+/* global fetch */
+
 import { DateTime } from 'luxon';
 import { abbreviateTeam, prependPlusSign } from './utils.mjs';
 import 'dotenv/config';
@@ -70,9 +71,9 @@ const getOdds = async () => {
   const url = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?regions=us&oddsFormat=american&bookmakers=${bookmaker}&markets=h2h,spreads,totals&apiKey=${apiKey}`;
 
   try {
-    const res = await axios.get(url);
+    const res = await fetch(url);
+    const data = await res.json();
     console.log('Remaing requests: ', res.headers['x-requests-remaining']);
-    const { data } = res;
     return data;
   } catch (err) {
     console.log(err);
@@ -168,7 +169,13 @@ const sendDiscordMsg = async (msg) => {
   };
 
   try {
-    const res = await axios.post(url, msgObj);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(msgObj),
+    });
     if (res.status === 204) {
       console.log('Msg send successfully');
     }
