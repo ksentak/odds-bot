@@ -73,7 +73,11 @@ const getOdds = async () => {
   try {
     const res = await fetch(url);
     const data = await res.json();
-    console.log('Remaing requests: ', res.headers['x-requests-remaining']);
+
+    // Log remaining requests avaialable
+    const remainingRequests = res.headers.get('x-requests-remaining');
+    console.log('Remaining requests: ', remainingRequests);
+
     return data;
   } catch (err) {
     console.log(err);
@@ -190,10 +194,12 @@ export const handler = async () => {
     const currentWeek = getNFLWeek(currentDate);
     const oddsData = await getOdds();
     const filteredData = filterData(oddsData, currentWeek);
-    const formattedMsg = await formatMsg(filteredData);
-    await sendDiscordMsg(formattedMsg);
+    // const formattedMsg = await formatMsg(filteredData);
+    // await sendDiscordMsg(formattedMsg);
   } catch (err) {
     console.error('Error in handler: ', err.message);
     throw err;
   }
 };
+
+handler();
