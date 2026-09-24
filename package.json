@@ -2,9 +2,9 @@
   "name": "odds-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "index.mjs",
   "scripts": {
-    "start": "node app.js"
+    "start": "node index.mjs"
   },
   "keywords": [],
   "author": "",
