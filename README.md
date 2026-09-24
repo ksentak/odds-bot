@@ -67,7 +67,7 @@ The odds-bot.zip file is now ready to be uploaded to AWS Lambda.
 - Navigate to AWS Lambda in the AWS Management Console.
 - Click "Create function".
 - Select "Author from scratch".
-- Name your function and choose the appropriate runtime (e.g., Node.js 14.x).
+- Name your function and choose the appropriate runtime (e.g., Node.js 20.x).
 - Create the function.
 
 2. Upload Code:
